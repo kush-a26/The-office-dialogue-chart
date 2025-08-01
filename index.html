@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Office Sentiment Analysis</title>
+    <style>
+        body { 
+            font-family: sans-serif; 
+            background-color: #fcf8f2; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: #333;
+            margin: 2em;
+        }
+        #chart {
+            max-width: 800px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>The Sentiment of Main Characters</h1>
+    <p>The sentiment of main characters each season according to IBM's Watson.</p>
+    
+    <!-- The chart will be placed inside this div -->
+    <div id="chart"></div>
+
+    <!-- Load the required libraries -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6"></script>
+
+    <!--
+    ==================================================================
+    EMBEDDED VISUALIZATION CODE
+    ==================================================================
+    -->
+    <script>
+        // The CSV data is now embedded directly in the code as a string.
+        // This avoids the need for a separate file and fixes the "fetch" error.
+        const csvData = `character_ID,character,season,sentiment
+1,Michael,1,-0.00935393
+1,Michael,2,-0.07159895
+1,Michael,3,-0.05620675
+1,Michael,4,-0.06893245
+1,Michael,5,-0.05341745
+1,Michael,6,-0.10482115
+1,Michael,7,-0.0926035
+2,Dwight,1,-0.127782
+2,Dwight,2,-0.0779486
+2,Dwight,3,-0.125038
+2,Dwight,4,-0.149926
+2,Dwight,5,-0.18912
+2,Dwight,6,-0.172306
+2,Dwight,7,-0.102059
+2,Dwight,8,-0.16077
+2,Dwight,9,-0.109464
+3,Jim,1,-0.0114493
+3,Jim,2,0.0287872
+3,Jim,3,-0.0429595
+3,Jim,4,-0.0713513
+3,Jim,5,-0.0882208
+3,Jim,6,-0.0370793
+3,Jim,7,-0.0721086
+3,Jim,8,-0.0988087
+3,Jim,9,-0.0587108
+4,Pam,1,-0.235845
+4,Pam,2,-0.13035
+4,Pam,3,-0.0730858
+4,Pam,4,-0.031714
+4,Pam,5,-0.0709442
+4,Pam,6,-0.144688
+4,Pam,7,-0.0932614
+4,Pam,8,0.00419192
+4,Pam,9,-0.0663093
+5,Andy,3,0.0302702
+5,Andy,4,0.0753643
+5,Andy,5,-0.0801052
+5,Andy,6,-0.0729314
+5,Andy,7,-0.0755147
+5,Andy,8,0.00159412
+5,Andy,9,-0.0763053
+6,Angela,2,-0.167963
+6,Angela,3,-0.205267
+6,Angela,4,-0.366816
+6,Angela,5,-0.208584
+6,Angela,6,-0.191829
+6,Angela,7,-0.1638
+6,Angela,8,-0.10252
+6,Angela,9,-0.163103
+7,Kevin,2,-0.0324315
+7,Kevin,3,-0.0828074
+7,Kevin,4,-0.135384
+7,Kevin,5,-0.0978257
+7,Kevin,6,0.0100974
+7,Kevin,7,-0.0120906
+7,Kevin,8,-0.0730899
+7,Kevin,9,-0.123447
+8,Erin,5,0.037503
+8,Erin,6,-0.0636845
+8,Erin,7,-0.0475003
+8,Erin,8,-0.103882
+8,Erin,9,-0.124351
+9,Oscar,2,-0.107032
+9,Oscar,3,-0.208779
+9,Oscar,4,-0.0397303
+9,Oscar,5,-0.188672
+9,Oscar,6,-0.209832
+9,Oscar,7,-0.0855931
+9,Oscar,8,-0.191076
+9,Oscar,9,-0.175434
+10,Ryan,1,-0.252312
+10,Ryan,2,-0.206503
+10,Ryan,3,0.0310365
+10,Ryan,4,-0.0587836
+10,Ryan,5,-0.216487
+10,Ryan,6,0.0266939
+10,Ryan,7,-0.138188
+11,Darryl,2,-0.188241
+11,Darryl,3,-0.0398199
+11,Darryl,4,-0.0746181
+11,Darryl,5,-0.162014
+11,Darryl,6,-0.199154
+11,Darryl,7,-0.130976
+11,Darryl,8,-0.0931287
+11,Darryl,9,-0.0506313
+12,Phyllis,2,-0.153094
+12,Phyllis,3,-0.0414733
+12,Phyllis,4,-0.252554
+12,Phyllis,5,-0.237816
+12,Phyllis,6,-0.130258
+12,Phyllis,7,-0.0474585
+12,Phyllis,8,-0.188992
+12,Phyllis,9,-0.219888
+13,Jan,2,-0.132019
+13,Jan,3,-0.156609
+13,Jan,4,-0.061435
+14,Toby,2,-0.247076
+14,Toby,3,-0.0230543
+14,Toby,4,-0.0239126
+14,Toby,5,-0.148314
+14,Toby,6,-0.160039
+14,Toby,7,-0.262832
+14,Toby,8,-0.214262
+14,Toby,9,-0.202652
+15,Kelly,2,-0.199863
+15,Kelly,3,-0.138514
+15,Kelly,4,-0.191642
+15,Kelly,5,-0.172533
+15,Kelly,6,-0.218356
+15,Kelly,7,-0.135309
+15,Kelly,8,-0.157195`;
+
+        // We use d3.csvParse to turn the string into structured data.
+        const dialogue_per_season = d3.csvParse(csvData, d3.autoType);
+
+        // --- 1. DATA PREPARATION (from your working code) ---
+        const character_summary = Array.from(d3.group(dialogue_per_season, d => d.character), ([character, values]) => {
+            const sentiments = values.map(d => d.sentiment);
+            return {
+                character,
+                min: d3.min(sentiments),
+                max: d3.max(sentiments),
+                mean: d3.mean(sentiments)
+            };
+        });
+
+        // --- 2. PLOTTING (your working code) ---
+        const myChart = Plot.plot({
+            height: 600,
+            marginTop: 50,
+            marginLeft: 40,
+            marginRight: 100,
+            style: {
+                background: "#fcf8f2",
+                color: "#333333",
+                fontFamily: "sans-serif"
+            },
+            color: {
+                domain: ["Season", "Overall Average"],
+                range: ["#a6cee3", "#d9822b"],
+                legend: true
+            },
+            x: {
+                label: null,
+                grid: true,
+                tickSize: 0,
+                nice: true,
+                line: true
+            },
+            y: {
+                domain: d3.sort(character_summary, d => d.mean).map(d => d.character),
+                label: null,
+                tickFormat: "",
+                tickSize: 0
+            },
+            marks: [
+                Plot.ruleX([0], { stroke: "grey", strokeDasharray: "2,2", strokeOpacity: 0.5 }),
+                Plot.text(["← NEGATIVE"], { frameAnchor: "top-left", dx: 10, dy: -40 }),
+                Plot.text(["POSITIVE →"], { frameAnchor: "top-right", dx: -10, dy: -40 }),
+                Plot.ruleX(character_summary, { x1: "min", x2: "max", y: "character", stroke: "lightgrey", strokeWidth: 2 }),
+                Plot.dot(dialogue_per_season.map(d => ({...d, type: "Season"})), { x: "sentiment", y: "character", fill: "type", fillOpacity: 0.5, stroke: "grey", strokeOpacity: 0.4 }),
+                Plot.dot(dialogue_per_season.map(d => ({...d, type: "Season"})), Plot.pointer({ x: "sentiment", y: "character", fill: "type", fillOpacity: 1, stroke: "grey", strokeOpacity: 1, r: 5 })),
+                Plot.text(dialogue_per_season, Plot.pointer({ x: "sentiment", y: "character", dx: 15, text: d => `Season ${d.season}`, fontWeight: "bold", fill: "#333", stroke: "#fcf8f2", strokeWidth: 4 })),
+                Plot.dot(character_summary.map(d => ({...d, type: "Overall Average"})), { x: "mean", y: "character", fill: "type", stroke: "#fcf8f2", strokeWidth: 1.5, r: 6, title: d => `Overall Average: ${d.mean.toFixed(3)}` }),
+                Plot.text(character_summary, { x: "max", y: "character", text: "character", dx: 10, textAnchor: "start" })
+            ]
+        });
+
+        // Append the chart to the div in our HTML
+        document.querySelector("#chart").append(myChart);
+        
+    </script>
+</body>
+</html>
